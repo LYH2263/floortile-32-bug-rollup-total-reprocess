@@ -41,7 +41,8 @@ def run_batch_estimate(
 ):
     """One tile + one waste across many rooms: per-room orders, then a grand total.
 
-    Saved totals are summed per-room orders; open-path may re-derive totals separately.
+    The grand total is always the plain sum of the per-room orders; the open
+    path returns those same pinned sums without re-deriving anything.
 
     Saved as a single run whose payload snapshots every room's numbers, so later
     room edits never rewrite history.

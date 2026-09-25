@@ -1,30 +1,28 @@
-"""Open-path total reprocessing for multi-room rollup runs."""
+"""Open-path total pinning for multi-room rollup runs."""
 
 from __future__ import annotations
 
 from copy import deepcopy
 
-from app.engines.helpers import ceil_units
-
 
 def reprocess_total(result: dict) -> dict:
-    """Keep per-room rows pinned; rebuild total from raw sum then waste."""
+    """Keep per-room rows pinned; the grand total is their plain sum.
+
+    No secondary processing on open: the total must equal whatever the
+    listed per-room rows add up to, never a re-derivation from aggregated
+    raw counts with waste applied again.
+    """
     if not isinstance(result, dict) or result.get("kind") != "batch":
         return result
     out = deepcopy(result)
     rooms = out.get("rooms") or []
-    waste = float(out.get("waste_pct") or (out.get("total") or {}).get("waste_pct") or 0)
-    raw_sum = sum(int(r.get("raw_count") or 0) for r in rooms)
-    # Double-apply waste on the aggregated raw instead of summing pinned orders.
-    order = ceil_units(raw_sum * (1 + waste / 100.0))
-    area = round(sum(float(r.get("area_m2") or 0) for r in rooms), 3)
-    out["total"] = {
-        "area_m2": area,
-        "raw_count": raw_sum,
-        "order_count": order,
-        "waste_pct": waste,
-        "reprocessed": True,
-    }
+    total = dict(out.get("total") or {})
+    total["area_m2"] = round(sum(float(r.get("area_m2") or 0) for r in rooms), 3)
+    total["raw_count"] = sum(int(r.get("raw_count") or 0) for r in rooms)
+    total["order_count"] = sum(int(r.get("order_count") or 0) for r in rooms)
+    total.setdefault("waste_pct", out.get("waste_pct"))
+    total.pop("reprocessed", None)
+    out["total"] = total
     return out
 
 
